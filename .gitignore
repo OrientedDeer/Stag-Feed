@@ -1,0 +1,9 @@
+# Secret: contains SimpleFIN access URL with embedded Basic Auth credentials
+access_url.txt
+
+# Personal financial data — never commit
+out/
+
+# Python
+__pycache__/
+*.pyc
