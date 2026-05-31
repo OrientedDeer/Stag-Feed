@@ -39,5 +39,3 @@ Point cron at the fetch command to run it on a schedule.
 
 - Scheduled syncs with de-duplication on SimpleFIN's stable transaction `id`, so
   re-runs never create duplicates.
-- Stag-side import for balances (transactions already import cleanly; balances
-  are captured here but not yet consumed by Stag).
