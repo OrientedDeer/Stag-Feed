@@ -7,6 +7,9 @@ out/
 # Encrypted Stag backup blobs (their decrypted plaintext is your full finances)
 *.enc
 
+# Internal build notes — kept local; can reference employer/balances/account names
+NOTES.md
+
 # Python
 __pycache__/
 *.pyc
