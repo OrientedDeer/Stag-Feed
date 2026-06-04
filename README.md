@@ -9,7 +9,7 @@ transactions, and the script writes two files to `./out/`:
 
 - **`transactions.csv`** — `date, description, amount, account`, importable into
   [Stag](https://github.com/OrientedDeer/Stag) or any CSV-import budgeting app.
-- **`balances_history.csv`** — a balance snapshot per account, appended each run.
+- **`balances.csv`** — the current balance per account, overwritten each run.
 
 Transactions use the charge date (`transacted_at`) where available.
 Investment/retirement accounts (401k, IRA, brokerage) contribute their balances

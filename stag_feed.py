@@ -176,21 +176,21 @@ def write_transactions(data: dict, since: str = None, until: str = None) -> str:
     return path
 
 
-def append_balances(data: dict) -> str:
-    """Append a balance snapshot per account, building history over time.
+def write_balances(data: dict) -> str:
+    """Write the current balance per account, overwriting any prior snapshot.
 
     This is the retirement-side data. Stag can't import it yet (manual entry
-    only today) — we just land it durably so a future Stag feature can use it.
+    only today) — we just land the latest balances durably so a future Stag
+    feature can use them. Only the current snapshot is kept; we don't build
+    history here.
     """
-    path = os.path.join(OUT_DIR, "balances_history.csv")
+    path = os.path.join(OUT_DIR, "balances.csv")
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    new_file = not os.path.exists(path)
     rows = 0
-    with open(path, "a", newline="") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        if new_file:
-            w.writerow(["FetchedAt", "Org", "Account", "Balance",
-                        "AvailableBalance", "BalanceDate", "Currency"])
+        w.writerow(["FetchedAt", "Org", "Account", "Balance",
+                    "AvailableBalance", "BalanceDate", "Currency"])
         for acct in data.get("accounts", []):
             org = (acct.get("org") or {}).get("name", "")
             bal_date = ""
@@ -201,7 +201,7 @@ def append_balances(data: dict) -> str:
                         acct.get("available-balance", ""), bal_date,
                         acct.get("currency", "")])
             rows += 1
-    print(f"  balances_history.csv  (+{rows} rows)")
+    print(f"  balances.csv  ({rows} rows)")
     return path
 
 
@@ -248,7 +248,7 @@ def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
     print("Wrote:")
     write_transactions(data, since=args.since, until=args.until)
-    append_balances(data)
+    write_balances(data)
 
 
 if __name__ == "__main__":
