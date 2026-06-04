@@ -4,6 +4,9 @@ access_url.txt
 # Personal financial data — never commit
 out/
 
+# Encrypted Stag backup blobs (their decrypted plaintext is your full finances)
+*.enc
+
 # Python
 __pycache__/
 *.pyc

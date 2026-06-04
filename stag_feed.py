@@ -141,18 +141,24 @@ def _transaction_date(txn: dict) -> str:
 
 
 def write_transactions(data: dict, since: str = None, until: str = None) -> str:
-    """Write a Stag-importable CSV: Date, Description, Amount.
+    """Write a Stag-importable CSV: Date, Description, Amount, Account, Id.
 
     SimpleFIN's sign convention (money out = negative) already matches Stag's,
     so amounts pass straight through. `since`/`until` are inclusive YYYY-MM-DD
     bounds on the transaction date (ISO strings compare correctly as text).
+
+    The last column is SimpleFIN's stable transaction `id`. The headless importer
+    dedups re-fetches on it exactly (Stag's `applyTransactions(.., {dedup:'id'})`),
+    so the overlapping fetch window never creates duplicates. It's the trailing
+    column so Stag's manual CSV-import auto-detection still resolves Date /
+    Description / Amount from the earlier columns and just ignores this one.
     """
     path = os.path.join(OUT_DIR, "transactions.csv")
     rows = 0
     excluded = {}  # account name -> count of dropped investment transactions
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["Date", "Description", "Amount", "Account"])
+        w.writerow(["Date", "Description", "Amount", "Account", "Id"])
         for acct in data.get("accounts", []):
             txns = acct.get("transactions", [])
             if is_investment_account(acct):
@@ -167,7 +173,7 @@ def write_transactions(data: dict, since: str = None, until: str = None) -> str:
                 if until and date > until:
                     continue
                 desc = txn.get("description") or txn.get("payee") or txn.get("memo") or ""
-                w.writerow([date, desc, txn.get("amount", ""), acct_name])
+                w.writerow([date, desc, txn.get("amount", ""), acct_name, txn.get("id", "")])
                 rows += 1
     span = (f" from {since}" if since else "") + (f" through {until}" if until else "")
     print(f"  transactions.csv  ({rows} rows{span})")
