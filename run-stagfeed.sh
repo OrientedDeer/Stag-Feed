@@ -10,7 +10,7 @@ echo ">> fetch (SimpleFIN, since $SINCE)"
 
 echo ">> merge ($([ ${#WRITE[@]} -eq 0 ] && echo DRY-RUN || echo WRITE))"
 docker run --rm --network stag_default \
-  -v "$ROOT/Stag":/app -v "$ROOT/Stag-Feed/out":/csv:ro -w /app \
+  -v /opt/stag/frontend:/app -v "$ROOT/Stag-Feed/out":/csv:ro -w /app \
   --env-file /opt/stag/.env --env-file "$ROOT/stag-feed.env" \
   -e STAG_TX_CSV=/csv/transactions.csv -e STAG_BAL_CSV=/csv/balances.csv \
   "${WRITE[@]}" \
