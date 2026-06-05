@@ -8,6 +8,11 @@ SINCE="${STAG_SINCE:-$(date -d '3 days ago' +%F)}"
 echo ">> fetch (SimpleFIN, since $SINCE)"
 ( cd "$ROOT/Stag-Feed" && python3 stag_feed.py --since "$SINCE" )
 
+# Don't leave personal financial data on disk. The merge step below consumes
+# these CSVs; remove them on exit (even on error) so they never linger between
+# runs.
+trap 'rm -f "$ROOT/Stag-Feed/out/transactions.csv" "$ROOT/Stag-Feed/out/balances.csv"' EXIT
+
 echo ">> merge ($([ ${#WRITE[@]} -eq 0 ] && echo DRY-RUN || echo WRITE))"
 docker run --rm --network stag_default \
   -v /opt/stag/frontend:/app -v "$ROOT/Stag-Feed/out":/csv:ro -w /app \

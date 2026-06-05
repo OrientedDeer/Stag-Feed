@@ -185,10 +185,10 @@ def write_transactions(data: dict, since: str = None, until: str = None) -> str:
 def write_balances(data: dict) -> str:
     """Write the current balance per account, overwriting any prior snapshot.
 
-    This is the retirement-side data. Stag can't import it yet (manual entry
-    only today) — we just land the latest balances durably so a future Stag
-    feature can use them. Only the current snapshot is kept; we don't build
-    history here.
+    This is the retirement-side data, handed to the merge step alongside the
+    transactions. Only the current snapshot is written; we don't build history
+    here, and run-stagfeed.sh deletes this file on exit so no personal financial
+    data lingers on disk between runs.
     """
     path = os.path.join(OUT_DIR, "balances.csv")
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
