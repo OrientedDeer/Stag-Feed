@@ -16,7 +16,7 @@ trap 'rm -f "$ROOT/Stag-Feed/out/transactions.csv" "$ROOT/Stag-Feed/out/balances
 echo ">> merge ($([ ${#WRITE[@]} -eq 0 ] && echo DRY-RUN || echo WRITE))"
 docker run --rm --network stag_default \
   -v /opt/stag/frontend:/app -v "$ROOT/Stag-Feed/out":/csv:ro -w /app \
-  --env-file /opt/stag/.env --env-file "$ROOT/stag-feed.env" \
+  --env-file /opt/stag/frontend/selfhost/.env --env-file "$ROOT/stag-feed.env" \
   -e STAG_TX_CSV=/csv/transactions.csv -e STAG_BAL_CSV=/csv/balances.csv \
   "${WRITE[@]}" \
   node:22-slim npx --yes vite-node stagfeed/couchImport.ts
