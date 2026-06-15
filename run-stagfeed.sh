@@ -4,7 +4,12 @@ ROOT=/opt/stag/stag-feed
 WRITE=()
 [ "${1:-}" = "--write" ] && WRITE=(-e STAG_WRITE=1)
 
-SINCE="${STAG_SINCE:-$(date -d '3 days ago' +%F)}"
+# Window must outlast bank posting lag, not just cover "recent" days: a card
+# charge can post several days after its transaction date, and the importer
+# dedupes on SimpleFIN id, so a late-posting txn only backfills if it's STILL
+# inside the fetch window when it finally appears. 3 days missed real Chase
+# charges (06-15); 14 gives posting lag comfortable margin (SimpleFIN caps at 90).
+SINCE="${STAG_SINCE:-$(date -d '14 days ago' +%F)}"
 echo ">> fetch (SimpleFIN, since $SINCE)"
 ( cd "$ROOT/Stag-Feed" && python3 stag_feed.py --since "$SINCE" )
 
