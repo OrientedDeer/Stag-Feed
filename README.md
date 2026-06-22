@@ -7,9 +7,11 @@ budgeting-app-ready CSV. Python standard library only — no dependencies.
 A single `/accounts` call returns every linked account's balances and
 transactions, and the script writes two files to `./out/`:
 
-- **`transactions.csv`** — `Date, Description, Amount, Account, Id` (the trailing
-  `Id` is SimpleFIN's stable transaction id, used for de-duplication), importable
-  into [Stag](https://github.com/OrientedDeer/Stag) or any CSV-import budgeting app.
+- **`transactions.csv`** — `Date, Description, Amount, Source, Id` (`Source` is the
+  account/card name, which Stag stamps onto each transaction for statement
+  reconciliation; the trailing `Id` is SimpleFIN's stable transaction id, used for
+  de-duplication), importable into
+  [Stag](https://github.com/OrientedDeer/Stag) or any CSV-import budgeting app.
 - **`balances.csv`** — the current balance per account, overwritten each run.
 
 Transactions use the charge date (`transacted_at`) where available.

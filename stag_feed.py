@@ -141,31 +141,40 @@ def _transaction_date(txn: dict) -> str:
 
 
 def write_transactions(data: dict, since: str = None, until: str = None) -> str:
-    """Write a Stag-importable CSV: Date, Description, Amount, Account, Id.
+    """Write a Stag-importable CSV: Date, Description, Amount, Source, Id.
 
     SimpleFIN's sign convention (money out = negative) already matches Stag's,
     so amounts pass straight through. `since`/`until` are inclusive YYYY-MM-DD
     bounds on the transaction date (ISO strings compare correctly as text).
 
+    `Source` is the account/card name the transaction came from (e.g.
+    "Rewards card ••1234"). Stag stamps it onto each imported `Transaction.source`,
+    which its statement-reconcile feature groups on: sum one card's transactions
+    over a statement window and compare the total against the paper statement.
+    A single mixed-account CSV stays fine — the source rides along per row.
+
     The last column is SimpleFIN's stable transaction `id`. The headless importer
     dedups re-fetches on it exactly (Stag's `applyTransactions(.., {dedup:'id'})`),
-    so the overlapping fetch window never creates duplicates. It's the trailing
-    column so Stag's manual CSV-import auto-detection still resolves Date /
-    Description / Amount from the earlier columns and just ignores this one.
+    so the overlapping fetch window never creates duplicates. Source and Id are
+    the trailing columns so Stag's manual CSV-import auto-detection still resolves
+    Date / Description / Amount from the earlier columns and ignores these two.
     """
     path = os.path.join(OUT_DIR, "transactions.csv")
     rows = 0
     excluded = {}  # account name -> count of dropped investment transactions
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["Date", "Description", "Amount", "Account", "Id"])
+        w.writerow(["Date", "Description", "Amount", "Source", "Id"])
         for acct in data.get("accounts", []):
             txns = acct.get("transactions", [])
             if is_investment_account(acct):
                 if txns:
                     excluded[acct.get("name", "?")] = len(txns)
                 continue  # balances still captured in append_balances()
-            acct_name = acct.get("name", acct.get("id", "unknown"))
+            # The account/card name becomes Stag's Transaction.source (the label
+            # its statement-reconcile feature groups on). `or` (not a .get default)
+            # so an empty-string name still falls through to id, never blank.
+            source = acct.get("name") or acct.get("id") or "unknown"
             for txn in txns:
                 date = _transaction_date(txn)
                 if since and date < since:
@@ -173,7 +182,7 @@ def write_transactions(data: dict, since: str = None, until: str = None) -> str:
                 if until and date > until:
                     continue
                 desc = txn.get("description") or txn.get("payee") or txn.get("memo") or ""
-                w.writerow([date, desc, txn.get("amount", ""), acct_name, txn.get("id", "")])
+                w.writerow([date, desc, txn.get("amount", ""), source, txn.get("id", "")])
                 rows += 1
     span = (f" from {since}" if since else "") + (f" through {until}" if until else "")
     print(f"  transactions.csv  ({rows} rows{span})")
