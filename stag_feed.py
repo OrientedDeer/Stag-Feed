@@ -140,8 +140,19 @@ def _transaction_date(txn: dict) -> str:
     return datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d")
 
 
+def _posted_date(txn: dict) -> str:
+    """The bank's posted/settled date, or '' when SimpleFIN omits it. Statements
+    cut on posting, so Stag's reconcile feature wants this alongside Date
+    (Stag-Feed#1 / Stag#163). Never faked from transacted_at — Stag falls back
+    to Date on its side, which in the omitted case IS the posted date."""
+    ts = txn.get("posted") or 0
+    if not ts:
+        return ""
+    return datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d")
+
+
 def write_transactions(data: dict, since: str = None, until: str = None) -> str:
-    """Write a Stag-importable CSV: Date, Description, Amount, Source, Id.
+    """Write a Stag-importable CSV: Date, Description, Amount, Source, Id, Posted.
 
     SimpleFIN's sign convention (money out = negative) already matches Stag's,
     so amounts pass straight through. `since`/`until` are inclusive YYYY-MM-DD
@@ -153,18 +164,22 @@ def write_transactions(data: dict, since: str = None, until: str = None) -> str:
     over a statement window and compare the total against the paper statement.
     A single mixed-account CSV stays fine — the source rides along per row.
 
-    The last column is SimpleFIN's stable transaction `id`. The headless importer
-    dedups re-fetches on it exactly (Stag's `applyTransactions(.., {dedup:'id'})`),
-    so the overlapping fetch window never creates duplicates. Source and Id are
-    the trailing columns so Stag's manual CSV-import auto-detection still resolves
-    Date / Description / Amount from the earlier columns and ignores these two.
+    `Id` is SimpleFIN's stable transaction id. The headless importer dedups
+    re-fetches on it exactly (Stag's `applyTransactions(.., {dedup:'id'})`), so
+    the overlapping fetch window never creates duplicates.
+
+    `Posted` (Stag-Feed#1) is the bank's posted/settled date — statements cut on
+    posting, so Stag's reconcile feature groups on it (falling back to Date when
+    empty). It is appended AFTER Id: Source/Id/Posted stay the trailing columns
+    so Stag's manual CSV-import auto-detection still resolves Date / Description /
+    Amount from the earlier columns and ignores these trailers.
     """
     path = os.path.join(OUT_DIR, "transactions.csv")
     rows = 0
     excluded = {}  # account name -> count of dropped investment transactions
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["Date", "Description", "Amount", "Source", "Id"])
+        w.writerow(["Date", "Description", "Amount", "Source", "Id", "Posted"])
         for acct in data.get("accounts", []):
             txns = acct.get("transactions", [])
             if is_investment_account(acct):
@@ -182,7 +197,7 @@ def write_transactions(data: dict, since: str = None, until: str = None) -> str:
                 if until and date > until:
                     continue
                 desc = txn.get("description") or txn.get("payee") or txn.get("memo") or ""
-                w.writerow([date, desc, txn.get("amount", ""), source, txn.get("id", "")])
+                w.writerow([date, desc, txn.get("amount", ""), source, txn.get("id", ""), _posted_date(txn)])
                 rows += 1
     span = (f" from {since}" if since else "") + (f" through {until}" if until else "")
     print(f"  transactions.csv  ({rows} rows{span})")
